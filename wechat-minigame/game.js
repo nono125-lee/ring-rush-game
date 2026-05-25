@@ -1,6 +1,12 @@
 const canvas = wx.createCanvas();
 const ctx = canvas.getContext("2d");
 
+wx.showShareMenu({ withShareTicket: true });
+wx.onShareAppMessage(() => ({
+  title: "环线冲刺：一键换轨，别碰红色闸门",
+}));
+wx.setKeepScreenOn({ keepScreenOn: true });
+
 const TAU = Math.PI * 2;
 const BEST_KEY = "ring-rush-best";
 
