@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23080a0a'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%2300f0c8' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='12' fill='none' stroke='%23ffcf4a' stroke-width='5'/%3E%3C/svg%3E">
+  <title>环线冲刺</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8f1dc;
+      --muted: #a9b1ad;
+      --panel: rgba(10, 13, 14, .72);
+      --cyan: #00f0c8;
+      --gold: #ffcf4a;
+      --red: #ff3d3d;
+      --green: #58ff7b;
+      --charcoal: #080a0a;
+      --line: rgba(248, 241, 220, .16);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 14%, rgba(0, 240, 200, .22), transparent 26rem),
+        radial-gradient(circle at 78% 82%, rgba(255, 207, 74, .16), transparent 30rem),
+        linear-gradient(135deg, #030404 0%, #101411 48%, #040606 100%);
+      color: var(--ink);
+      font-family: "Avenir Next Condensed", "DIN Condensed", "Trebuchet MS", sans-serif;
+    }
+
+    body::before {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      opacity: .28;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      transform: rotate(-6deg) scale(1.18);
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, .035) 0,
+        rgba(255, 255, 255, .035) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      mix-blend-mode: overlay;
+      opacity: .18;
+    }
+
+    #game {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .hud {
+      position: fixed;
+      z-index: 3;
+      top: max(16px, env(safe-area-inset-top));
+      left: max(16px, env(safe-area-inset-left));
+      right: max(16px, env(safe-area-inset-right));
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: start;
+      pointer-events: none;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand .name {
+      display: block;
+      color: var(--ink);
+      font-size: clamp(28px, 5vw, 64px);
+      font-weight: 900;
+      line-height: .82;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      text-shadow: 0 0 26px rgba(0, 240, 200, .34);
+    }
+
+    .brand .tag {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: clamp(10px, 1.7vw, 13px);
+      letter-spacing: 0;
+    }
+
+    .meter {
+      justify-self: center;
+      display: flex;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .38);
+      backdrop-filter: blur(12px);
+    }
+
+    .stat {
+      min-width: 78px;
+      padding: 10px 12px;
+      text-align: center;
+      border-right: 1px solid rgba(248, 241, 220, .12);
+    }
+
+    .stat:last-child {
+      border-right: 0;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 10px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .value {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: clamp(22px, 3vw, 36px);
+      font-weight: 900;
+      line-height: .92;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .side {
+      justify-self: end;
+      max-width: 210px;
+      color: var(--muted);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .quick-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      width: 42px;
+      min-height: 42px;
+      padding: 0;
+      border: 1px solid rgba(248, 241, 220, .18);
+      background: rgba(8, 10, 10, .64);
+      color: var(--ink);
+      font-size: 18px;
+      box-shadow: none;
+    }
+
+    .overlay {
+      position: fixed;
+      z-index: 5;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      pointer-events: none;
+    }
+
+    .modal {
+      width: min(460px, calc(100vw - 32px));
+      padding: 24px;
+      border: 1px solid rgba(248, 241, 220, .2);
+      background: linear-gradient(180deg, rgba(9, 12, 12, .9), rgba(6, 7, 7, .72));
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(0, 240, 200, .08);
+      backdrop-filter: blur(18px);
+      pointer-events: auto;
+    }
+
+    .modal h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(42px, 13vw, 94px);
+      line-height: .78;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .copy {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(34px, 9vw, 60px);
+      line-height: .9;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .menu-grid button,
+    .start-row button {
+      width: 100%;
+    }
+
+    .ghost-btn {
+      border: 1px solid rgba(248, 241, 220, .2);
+      background: rgba(248, 241, 220, .08);
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 9px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 13px;
+    }
+
+    .rank-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(248, 241, 220, .12);
+      padding-bottom: 8px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      border: 1px solid rgba(248, 241, 220, .14);
+      padding: 12px;
+      color: var(--ink);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 13px;
+    }
+
+    .switch {
+      position: relative;
+      width: 54px;
+      height: 30px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(248, 241, 220, .18);
+      background: rgba(248, 241, 220, .08);
+    }
+
+    .switch::after {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      content: "";
+      background: var(--muted);
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .switch.on::after {
+      transform: translateX(24px);
+      background: var(--cyan);
+    }
+
+    .notice {
+      position: fixed;
+      z-index: 8;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      min-width: min(320px, calc(100vw - 40px));
+      transform: translateX(-50%) translateY(12px);
+      border: 1px solid rgba(255, 207, 74, .34);
+      padding: 12px 14px;
+      background: rgba(8, 10, 10, .86);
+      color: var(--gold);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 12px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .notice.on {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .start-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 22px;
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 2px;
+      padding: 0 18px;
+      background: var(--gold);
+      color: #151207;
+      font: 900 18px/1 "Avenir Next Condensed", "DIN Condensed", sans-serif;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      box-shadow: 0 0 28px rgba(255, 207, 74, .3);
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: translateY(1px) scale(.99);
+    }
+
+    .hint-pill {
+      min-height: 46px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(0, 240, 200, .26);
+      padding: 0 14px;
+      color: var(--cyan);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .flash {
+      position: fixed;
+      z-index: 2;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at center, rgba(255, 207, 74, .22), transparent 54%);
+      transition: opacity .18s ease-out;
+    }
+
+    .flash.on {
+      opacity: 1;
+    }
+
+    @media (max-width: 720px) {
+      .hud {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .meter {
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      .stat {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .side {
+        justify-self: start;
+        max-width: none;
+        text-align: left;
+      }
+
+      .brand .name {
+        font-size: clamp(34px, 14vw, 58px);
+      }
+
+      .modal {
+        margin-top: 100px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="环线冲刺游戏画布"></canvas>
+
+  <div class="hud" aria-live="polite">
+    <div class="brand">
+      <span class="name">RING<br>RUSH</span>
+      <span class="tag">一键换轨，别碰红色闸门</span>
+    </div>
+    <div class="meter">
+      <div class="stat">
+        <span class="label">score</span>
+        <span class="value" id="score">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">combo</span>
+        <span class="value" id="combo">x1</span>
+      </div>
+      <div class="stat">
+        <span class="label">best</span>
+        <span class="value" id="best">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">energy</span>
+        <span class="value" id="energy">3/3</span>
+      </div>
+    </div>
+    <div class="side">
+      空格 / 点击 / 触摸：内外环切换<br>连续吃黄钻加倍率，难度会缓慢上升
+      <div class="quick-actions">
+        <button class="icon-btn" id="rankQuick" aria-label="排行榜" title="排行榜">≡</button>
+        <button class="icon-btn" id="settingsQuick" aria-label="设置" title="设置">⚙</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="flash" id="flash"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h1 id="title">环线<br>冲刺</h1>
+      <div class="copy" id="copy">在两条霓虹轨道之间切换，吃掉黄钻，避开红色闸门。每次连击都会把分数和心跳一起抬高。</div>
+      <div class="start-row">
+        <button id="start">开始</button>
+        <span class="hint-pill">Space / Tap</span>
+      </div>
+      <div class="menu-grid">
+        <button class="ghost-btn" id="adEnergy">看广告+1</button>
+        <button class="ghost-btn" id="ranking">排行榜</button>
+        <button class="ghost-btn" id="settings">设置</button>
+        <button class="ghost-btn" id="share">复制链接</button>
+      </div>
+    </div>
+  </div>
+  <div class="notice" id="notice"></div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const scoreEl = document.getElementById("score");
+      const comboEl = document.getElementById("combo");
+      const bestEl = document.getElementById("best");
+      const energyEl = document.getElementById("energy");
+      const overlay = document.getElementById("overlay");
+      const titleEl = document.getElementById("title");
+      const copyEl = document.getElementById("copy");
+      const startBtn = document.getElementById("start");
+      const flash = document.getElementById("flash");
+      const adEnergyBtn = document.getElementById("adEnergy");
+      const rankingBtn = document.getElementById("ranking");
+      const settingsBtn = document.getElementById("settings");
+      const shareBtn = document.getElementById("share");
+      const rankQuickBtn = document.getElementById("rankQuick");
+      const settingsQuickBtn = document.getElementById("settingsQuick");
+      const noticeEl = document.getElementById("notice");
+
+      const TAU = Math.PI * 2;
+      const BEST_KEY = "ring-rush-best";
+      const ENERGY_KEY = "ring-rush-energy";
+      const RANKING_KEY = "ring-rush-ranking";
+      const SETTINGS_KEY = "ring-rush-settings";
+      const DAILY_ENERGY = 3;
+      let audio;
+      let w = 0;
+      let h = 0;
+      let dpr = 1;
+      let cx = 0;
+      let cy = 0;
+      let scale = 1;
+      let laneRadii = [92, 148];
+      let running = false;
+      let last = 0;
+      let spawnTimer = 0;
+      let shake = 0;
+      let score = 0;
+      let combo = 0;
+      let best = Number(localStorage.getItem(BEST_KEY) || 0);
+      let pulse = 0;
+      let menu = "home";
+      let noticeTimer = 0;
+      let endCopy = "";
+      let energy = loadEnergy();
+      let ranking = loadRanking();
+      let settings = loadSettings();
+
+      const player = {
+        angle: -Math.PI / 2,
+        lane: 1,
+        targetLane: 1,
+        lanePos: 1,
+        speed: 1.8,
+      };
+
+      const items = [];
+      const particles = [];
+      const stars = [];
+
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx = w / 2;
+        cy = h / 2 + (w < 720 ? 70 : 28);
+        scale = Math.max(.78, Math.min(1.28, Math.min(w, h) / 560));
+        laneRadii = [94 * scale, 154 * scale];
+        stars.length = 0;
+        for (let i = 0; i < 90; i += 1) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.8 + .3,
+            a: Math.random() * .45 + .08,
+          });
+        }
+      }
+
+      function angularDistance(a, b) {
+        let diff = Math.abs((a - b) % TAU);
+        return diff > Math.PI ? TAU - diff : diff;
+      }
+
+      function normAngle(a) {
+        return ((a % TAU) + TAU) % TAU;
+      }
+
+      function point(angle, radius) {
+        return {
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius,
+        };
+      }
+
+      function beep(freq, duration, type = "sine", gain = .055) {
+        if (!settings.sound) return;
+        try {
+          if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audio.createOscillator();
+          const vol = audio.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, audio.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(freq * 1.75, audio.currentTime + duration);
+          vol.gain.setValueAtTime(gain, audio.currentTime);
+          vol.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration);
+          osc.connect(vol);
+          vol.connect(audio.destination);
+          osc.start();
+          osc.stop(audio.currentTime + duration);
+        } catch (_) {
+          audio = null;
+        }
+      }
+
+      function todayKey() {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function loadEnergy() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(ENERGY_KEY) || "null");
+          if (saved && saved.date === todayKey()) {
+            return { date: saved.date, playsLeft: Number(saved.playsLeft || 0) };
+          }
+        } catch (_) {}
+        const fresh = { date: todayKey(), playsLeft: DAILY_ENERGY };
+        localStorage.setItem(ENERGY_KEY, JSON.stringify(fresh));
+        return fresh;
+      }
+
+      function saveEnergy() {
+        localStorage.setItem(ENERGY_KEY, JSON.stringify(energy));
+      }
+
+      function consumeEnergy() {
+        energy = loadEnergy();
+        if (energy.playsLeft <= 0) return false;
+        energy.playsLeft -= 1;
+        saveEnergy();
+        updateHud();
+        return true;
+      }
+
+      function grantEnergy(amount = 1) {
+        energy = loadEnergy();
+        energy.playsLeft += amount;
+        saveEnergy();
+        updateHud();
+        showNotice(`体力 +${amount}`);
+      }
+
+      function loadRanking() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]");
+          return Array.isArray(saved) ? saved : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function saveRanking() {
+        localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
+      }
+
+      function recordScore(finalScore) {
+        if (finalScore <= 0) return;
+        ranking.push({ score: Math.floor(finalScore), date: todayKey() });
+        ranking = ranking.sort((a, b) => b.score - a.score).slice(0, 10);
+        saveRanking();
+      }
+
+      function loadSettings() {
+        try {
+          return {
+            sound: true,
+            reducedFx: false,
+            ...(JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")),
+          };
+        } catch (_) {
+          return { sound: true, reducedFx: false };
+        }
+      }
+
+      function saveSettings() {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      }
+
+      function showNotice(text) {
+        noticeEl.textContent = text;
+        noticeEl.classList.add("on");
+        window.clearTimeout(noticeTimer);
+        noticeTimer = window.setTimeout(() => noticeEl.classList.remove("on"), 1800);
+      }
+
+      function getEndMessage(finalScore, isNewBest) {
+        if (isNewBest && finalScore > 0) return "新纪录，手感在线。下一把别被第一个红门教育。";
+        if (finalScore < 80) return "热身结束，手指醒了吗？红门刚刚笑了一下。";
+        if (finalScore < 220) return "节奏有了，再稳一点就能进排行榜前排。";
+        if (finalScore < 480) return "这把不错，已经不是乱点，是有点技术了。";
+        return "很强，但系统还没服。继续冲，看看极限在哪里。";
+      }
+
+      function openMenu(nextMenu) {
+        menu = nextMenu;
+        running = false;
+        overlay.style.display = "grid";
+        renderMenu();
+      }
+
+      function renderMenu() {
+        adEnergyBtn.style.display = "";
+        rankingBtn.style.display = "";
+        settingsBtn.style.display = "";
+        shareBtn.style.display = "";
+        startBtn.style.display = "";
+        startBtn.textContent = energy.playsLeft > 0 ? "开始" : "没体力";
+
+        if (menu === "ranking") {
+          titleEl.innerHTML = `<span class="panel-title">排行榜</span>`;
+          const rows = ranking.length
+            ? ranking.slice(0, 8).map((item, index) => `<li><span>${index + 1}. ${item.score} 分</span><span>${item.date}</span></li>`).join("")
+            : `<li><span>暂无成绩</span><span>0 分</span></li>`;
+          copyEl.innerHTML = `<ul class="rank-list">${rows}</ul>`;
+          startBtn.textContent = "返回";
+          adEnergyBtn.style.display = "none";
+          rankingBtn.style.display = "none";
+          settingsBtn.style.display = "none";
+          shareBtn.style.display = "none";
+          return;
+        }
+
+        if (menu === "settings") {
+          titleEl.innerHTML = `<span class="panel-title">设置</span>`;
+          copyEl.innerHTML = `
+            <div class="setting-row">声音反馈 <span class="switch ${settings.sound ? "on" : ""}" data-setting="sound"></span></div>
+            <div class="setting-row">减少闪光 <span class="switch ${settings.reducedFx ? "on" : ""}" data-setting="reducedFx"></span></div>
+          `;
+          startBtn.textContent = "返回";
+          adEnergyBtn.style.display = "none";
+          rankingBtn.style.display = "none";
+          settingsBtn.style.display = "none";
+          shareBtn.style.display = "none";
+          return;
+        }
+
+        if (energy.playsLeft <= 0) {
+          titleEl.innerHTML = "体力<br>用完";
+          copyEl.textContent = "今天 3 次已用完。看一次广告可增加 1 次，明天会自动恢复到 3 次。";
+          startBtn.textContent = "没体力";
+          return;
+        }
+
+        titleEl.innerHTML = menu === "gameover" ? `${Math.floor(score)}<br>分` : "环线<br>冲刺";
+        copyEl.textContent = menu === "gameover"
+          ? `${endCopy} 最高分 ${best}，剩余体力 ${energy.playsLeft} 次。`
+          : "每天 3 次体力。吃黄钻攒连击，避开红色闸门，难度会逐步上升。";
+      }
+
+      function reset() {
+        score = 0;
+        combo = 0;
+        spawnTimer = 0;
+        shake = 0;
+        pulse = 0;
+        items.length = 0;
+        particles.length = 0;
+        player.angle = -Math.PI / 2;
+        player.lane = 1;
+        player.targetLane = 1;
+        player.lanePos = 1;
+        player.speed = 1.7;
+        updateHud();
+      }
+
+      function startGame() {
+        if (running) return;
+        if (menu === "ranking" || menu === "settings") {
+          openMenu("home");
+          return;
+        }
+        if (!consumeEnergy()) {
+          menu = "home";
+          renderMenu();
+          showNotice("今日体力已用完");
+          return;
+        }
+        reset();
+        running = true;
+        menu = "playing";
+        overlay.style.display = "none";
+        last = performance.now();
+        beep(220, .09, "triangle", .04);
+        beep(440, .12, "square", .035);
+        requestAnimationFrame(loop);
+      }
+
+      function endGame() {
+        running = false;
+        const finalScore = Math.floor(score);
+        const isNewBest = finalScore > best;
+        endCopy = getEndMessage(finalScore, isNewBest);
+        best = Math.max(best, finalScore);
+        localStorage.setItem(BEST_KEY, String(best));
+        recordScore(finalScore);
+        updateHud();
+        menu = "gameover";
+        renderMenu();
+        overlay.style.display = "grid";
+        shake = 28;
+        beep(120, .22, "sawtooth", .06);
+      }
+
+      function updateHud() {
+        scoreEl.textContent = Math.floor(score);
+        comboEl.textContent = `x${Math.max(1, Math.min(9, Math.floor(combo / 5) + 1))}`;
+        bestEl.textContent = Math.floor(best);
+        energy = loadEnergy();
+        energyEl.textContent = `${energy.playsLeft}/${DAILY_ENERGY}`;
+      }
+
+      function switchLane() {
+        if (!running) {
+          startGame();
+          return;
+        }
+        player.targetLane = player.targetLane ? 0 : 1;
+        pulse = 1;
+        addBurst(point(player.angle, laneRadii[player.targetLane]), "#00f0c8", 8, 1.2);
+        beep(360 + player.targetLane * 110, .045, "triangle", .025);
+      }
+
+      function spawnItem() {
+        const difficulty = Math.min(1, score / 1050);
+        const hazardChance = .3 + difficulty * .2;
+        const type = Math.random() < hazardChance ? "hazard" : "gem";
+        const lane = Math.random() < .5 ? 0 : 1;
+        const ahead = 1.24 + Math.random() * (type === "hazard" ? 2.32 : 2.95);
+        const angle = normAngle(player.angle + ahead);
+
+        const tooClose = items.some((it) =>
+          it.lane === lane && angularDistance(it.angle, angle) < .34
+        );
+        if (!tooClose) {
+          items.push({ type, lane, angle, life: 0, hit: false });
+        }
+      }
+
+      function addBurst(origin, color, count, power = 1) {
+        for (let i = 0; i < count; i += 1) {
+          const a = Math.random() * TAU;
+          const v = (60 + Math.random() * 170) * power;
+          particles.push({
+            x: origin.x,
+            y: origin.y,
+            vx: Math.cos(a) * v,
+            vy: Math.sin(a) * v,
+            size: Math.random() * 3.5 + 1.2,
+            life: .45 + Math.random() * .35,
+            max: .8,
+            color,
+          });
+        }
+      }
+
+      function collect(item) {
+        item.hit = true;
+        combo += 1;
+        const mult = Math.max(1, Math.min(9, Math.floor(combo / 5) + 1));
+        score += 10 * mult;
+        const p = point(item.angle, laneRadii[item.lane]);
+        addBurst(p, combo % 10 === 0 ? "#58ff7b" : "#ffcf4a", 18, 1.25);
+        pulse = 1.35;
+        flash.classList.add("on");
+        window.setTimeout(() => flash.classList.remove("on"), 70);
+        beep(520 + mult * 48, .06, "sine", .045);
+        updateHud();
+      }
+
+      function update(dt) {
+        const speedBoost = Math.min(1.85, score / 950);
+        player.speed = 1.7 + speedBoost;
+        player.angle = normAngle(player.angle + player.speed * dt);
+        player.lanePos += (player.targetLane - player.lanePos) * Math.min(1, dt * 14);
+        player.lane = Math.round(player.lanePos);
+
+        spawnTimer -= dt;
+        const spawnRate = Math.max(.38, .82 - Math.min(.32, score / 3000));
+        if (spawnTimer <= 0) {
+          spawnItem();
+          spawnTimer = spawnRate;
+        }
+
+        const playerRadius = laneRadii[0] + (laneRadii[1] - laneRadii[0]) * player.lanePos;
+        const playerLane = player.lanePos < .5 ? 0 : 1;
+        for (const item of items) {
+          item.life += dt;
+          const diff = angularDistance(player.angle, item.angle);
+          if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? .15 : .11)) {
+            if (item.type === "gem") {
+              collect(item);
+            } else {
+              const p = point(player.angle, playerRadius);
+              addBurst(p, "#ff3d3d", 34, 1.65);
+              endGame();
+            }
+          }
+        }
+
+        for (let i = items.length - 1; i >= 0; i -= 1) {
+          const item = items[i];
+          const passedDelta = normAngle(player.angle - item.angle);
+          const passed = passedDelta > .35 && passedDelta < Math.PI && item.life > .7;
+          if (item.hit || item.life > 9 || passed) {
+            if (item.type === "gem" && !item.hit && combo > 0) combo = Math.max(0, combo - 2);
+            items.splice(i, 1);
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i -= 1) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= .986;
+          p.vy *= .986;
+          p.life -= dt;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        score += dt * (.6 + combo * .04);
+        pulse = Math.max(0, pulse - dt * 3.2);
+        shake = Math.max(0, shake - dt * 34);
+        updateHud();
+      }
+
+      function drawRing(radius, color, width, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, TAU);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawGem(item) {
+        const p = point(item.angle, laneRadii[item.lane]);
+        const size = (12 + Math.sin(item.life * 9) * 2) * scale;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(item.angle + Math.PI / 4 + item.life * 2.2);
+        ctx.fillStyle = "#ffcf4a";
+        ctx.shadowColor = "#ffcf4a";
+        ctx.shadowBlur = 24;
+        ctx.beginPath();
+        ctx.moveTo(0, -size);
+        ctx.lineTo(size * .78, 0);
+        ctx.lineTo(0, size);
+        ctx.lineTo(-size * .78, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,.65)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawHazard(item) {
+        const radius = laneRadii[item.lane];
+        const len = .14 + Math.min(.07, score / 10000);
+        ctx.save();
+        ctx.strokeStyle = "#ff3d3d";
+        ctx.lineWidth = 15 * scale;
+        ctx.lineCap = "round";
+        ctx.shadowColor = "#ff3d3d";
+        ctx.shadowBlur = 24;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, item.angle - len, item.angle + len);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.58)";
+        ctx.lineWidth = 3 * scale;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, item.angle - len * .76, item.angle + len * .76);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawPlayer() {
+        const radius = laneRadii[0] + (laneRadii[1] - laneRadii[0]) * player.lanePos;
+        const p = point(player.angle, radius);
+        const tangent = player.angle + Math.PI / 2;
+        const glow = 1 + pulse * .55;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(tangent);
+        ctx.shadowColor = "#00f0c8";
+        ctx.shadowBlur = settings.reducedFx ? 10 * glow : 34 * glow;
+        ctx.fillStyle = "#00f0c8";
+        ctx.beginPath();
+        ctx.roundRect(-16 * scale * glow, -7 * scale * glow, 32 * scale * glow, 14 * scale * glow, 6 * scale);
+        ctx.fill();
+        ctx.fillStyle = "#f8f1dc";
+        ctx.fillRect(2 * scale, -2 * scale, 12 * scale, 4 * scale);
+        ctx.restore();
+
+        const tail = point(player.angle - .12, radius);
+        ctx.save();
+        ctx.strokeStyle = "rgba(0, 240, 200, .34)";
+        ctx.lineWidth = 9 * scale;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(tail.x, tail.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+        ctx.save();
+        if (shake > 0) {
+          ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+        }
+
+        const starCount = settings.reducedFx ? Math.floor(stars.length * .45) : stars.length;
+        for (let i = 0; i < starCount; i += 1) {
+          const s = stars[i];
+          ctx.fillStyle = `rgba(248,241,220,${s.a})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, TAU);
+          ctx.fill();
+        }
+
+        if (!settings.reducedFx) {
+          const coreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, laneRadii[1] * 1.6);
+          coreGradient.addColorStop(0, "rgba(0,240,200,.14)");
+          coreGradient.addColorStop(.45, "rgba(255,207,74,.06)");
+          coreGradient.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.arc(cx, cy, laneRadii[1] * 1.6, 0, TAU);
+          ctx.fill();
+        }
+
+        drawRing(laneRadii[0], "rgba(0,240,200,.72)", 3 * scale, .85);
+        drawRing(laneRadii[1], "rgba(255,207,74,.62)", 3 * scale, .78);
+        drawRing(laneRadii[0] + (laneRadii[1] - laneRadii[0]) * player.lanePos, "#f8f1dc", 1.5 * scale, .16 + pulse * .22);
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(248,241,220,.12)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 18; i += 1) {
+          const a = i / 18 * TAU + performance.now() * .00012;
+          const p1 = point(a, laneRadii[0] - 26 * scale);
+          const p2 = point(a, laneRadii[1] + 28 * scale);
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        for (const item of items) {
+          if (item.type === "gem") drawGem(item);
+          else drawHazard(item);
+        }
+
+        if (running) drawPlayer();
+
+        for (const p of particles) {
+          ctx.globalAlpha = Math.max(0, p.life / p.max);
+          ctx.fillStyle = p.color;
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, TAU);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.restore();
+      }
+
+      function loop(now) {
+        const dt = Math.min(.033, (now - last) / 1000 || .016);
+        last = now;
+        if (running) update(dt);
+        draw();
+        if (running) requestAnimationFrame(loop);
+      }
+
+      window.addEventListener("resize", resize);
+      window.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button") || event.target.closest(".switch")) return;
+        event.preventDefault();
+        switchLane();
+      }, { passive: false });
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "Space" || event.code === "Enter") {
+          event.preventDefault();
+          switchLane();
+        }
+      });
+      startBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        startGame();
+      });
+      adEnergyBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        energy = loadEnergy();
+        if (energy.playsLeft > 0) {
+          showNotice("还有体力，先玩完再看广告");
+          return;
+        }
+        window.setTimeout(() => grantEnergy(1), 900);
+        showNotice("广告播放完成后获得 1 次体力");
+      });
+      rankingBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("ranking");
+      });
+      settingsBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("settings");
+      });
+      rankQuickBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("ranking");
+      });
+      settingsQuickBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("settings");
+      });
+      shareBtn.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          showNotice("链接已复制");
+        } catch (_) {
+          showNotice("复制失败，请手动分享地址栏链接");
+        }
+      });
+      copyEl.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-setting]");
+        if (!target) return;
+        const key = target.dataset.setting;
+        settings[key] = !settings[key];
+        saveSettings();
+        renderMenu();
+        event.stopPropagation();
+      });
+
+      if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function roundRect(x, y, width, height, radius) {
+          const r = Math.min(radius, width / 2, height / 2);
+          this.beginPath();
+          this.moveTo(x + r, y);
+          this.arcTo(x + width, y, x + width, y + height, r);
+          this.arcTo(x + width, y + height, x, y + height, r);
+          this.arcTo(x, y + height, x, y, r);
+          this.arcTo(x, y, x + width, y, r);
+          this.closePath();
+        };
+      }
+
+      resize();
+      updateHud();
+      renderMenu();
+      draw();
+    })();
+  </script>
+</body>
+</html>
