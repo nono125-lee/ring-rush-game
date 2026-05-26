@@ -34,6 +34,7 @@ let best = 0;
 let screen = "home";
 let notice = "";
 let noticeUntil = 0;
+let endCopy = "";
 let rewardedVideoAd = null;
 let adLoading = false;
 let buttons = [];
@@ -240,6 +241,14 @@ function showNotice(text) {
   noticeUntil = Date.now() + 1800;
 }
 
+function getEndMessage(finalScore, isNewBest) {
+  if (isNewBest && finalScore > 0) return "新纪录，手感在线。下一把别被第一个红门教育。";
+  if (finalScore < 80) return "热身结束，手指醒了吗？红门刚刚笑了一下。";
+  if (finalScore < 220) return "节奏有了，再稳一点就能进排行榜前排。";
+  if (finalScore < 480) return "这把不错，已经不是乱点，是有点技术了。";
+  return "很强，但系统还没服。继续冲，看看极限在哪里。";
+}
+
 function reset() {
   score = 0;
   combo = 0;
@@ -252,7 +261,7 @@ function reset() {
   player.lane = 1;
   player.targetLane = 1;
   player.lanePos = 1;
-  player.speed = 1.9;
+  player.speed = 1.7;
 }
 
 function startGame() {
@@ -271,6 +280,8 @@ function startGame() {
 function endGame() {
   running = false;
   const finalScore = Math.floor(score);
+  const isNewBest = finalScore > best;
+  endCopy = getEndMessage(finalScore, isNewBest);
   best = Math.max(best, finalScore);
   recordScore(finalScore);
   try {
@@ -293,11 +304,11 @@ function switchLane() {
 }
 
 function spawnItem() {
-  const difficulty = Math.min(1, score / 1300);
-  const hazardChance = 0.24 + difficulty * 0.18;
+  const difficulty = Math.min(1, score / 1050);
+  const hazardChance = 0.3 + difficulty * 0.2;
   const type = Math.random() < hazardChance ? "hazard" : "gem";
   const lane = Math.random() < 0.5 ? 0 : 1;
-  const ahead = 1.38 + Math.random() * (type === "hazard" ? 2.6 : 3.2);
+  const ahead = 1.24 + Math.random() * (type === "hazard" ? 2.35 : 2.95);
   const angle = normAngle(player.angle + ahead);
   const tooClose = items.some((it) => it.lane === lane && angularDistance(it.angle, angle) < 0.34);
   if (!tooClose) items.push({ type, lane, angle, life: 0, hit: false });
@@ -332,14 +343,14 @@ function collect(item) {
 }
 
 function update(dt) {
-  const speedBoost = Math.min(1.55, score / 1100);
-  player.speed = 1.55 + speedBoost;
+  const speedBoost = Math.min(1.85, score / 950);
+  player.speed = 1.7 + speedBoost;
   player.angle = normAngle(player.angle + player.speed * dt);
   player.lanePos += (player.targetLane - player.lanePos) * Math.min(1, dt * 14);
   player.lane = Math.round(player.lanePos);
 
   spawnTimer -= dt;
-  const spawnRate = Math.max(0.46, 0.92 - Math.min(0.28, score / 3300));
+  const spawnRate = Math.max(0.38, 0.82 - Math.min(0.32, score / 3000));
   if (spawnTimer <= 0) {
     spawnItem();
     spawnTimer = spawnRate;
@@ -350,7 +361,7 @@ function update(dt) {
   for (const item of items) {
     item.life += dt;
     const diff = angularDistance(player.angle, item.angle);
-    if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? 0.17 : 0.1)) {
+    if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? 0.16 : 0.11)) {
       if (item.type === "gem") {
         collect(item);
       } else {
@@ -661,7 +672,7 @@ function drawOverlay() {
   const text = noEnergy
     ? "今日 3 次体力已用完，观看广告可增加 1 次。"
     : score > 0
-      ? `最高分 ${best}。剩余体力 ${energy.playsLeft} 次。`
+      ? `${endCopy} 最高分 ${best}。剩余体力 ${energy.playsLeft} 次。`
       : `两条轨道切换，剩余体力 ${energy.playsLeft} 次。`;
   drawWrappedText(text, x + 24, y + 138, boxW - 52, 20);
   addButton("start", x + 24, y + 174, 104, 42);

@@ -512,6 +512,7 @@
       let pulse = 0;
       let menu = "home";
       let noticeTimer = 0;
+      let endCopy = "";
       let energy = loadEnergy();
       let ranking = loadRanking();
       let settings = loadSettings();
@@ -672,6 +673,14 @@
         noticeTimer = window.setTimeout(() => noticeEl.classList.remove("on"), 1800);
       }
 
+      function getEndMessage(finalScore, isNewBest) {
+        if (isNewBest && finalScore > 0) return "新纪录，手感在线。下一把别被第一个红门教育。";
+        if (finalScore < 80) return "热身结束，手指醒了吗？红门刚刚笑了一下。";
+        if (finalScore < 220) return "节奏有了，再稳一点就能进排行榜前排。";
+        if (finalScore < 480) return "这把不错，已经不是乱点，是有点技术了。";
+        return "很强，但系统还没服。继续冲，看看极限在哪里。";
+      }
+
       function openMenu(nextMenu) {
         menu = nextMenu;
         running = false;
@@ -724,8 +733,8 @@
 
         titleEl.innerHTML = menu === "gameover" ? `${Math.floor(score)}<br>分` : "环线<br>冲刺";
         copyEl.textContent = menu === "gameover"
-          ? `最高分 ${best}。新版节奏更松，红色闸门少一些，再冲一把更容易破纪录。`
-          : "每天 3 次体力。吃黄钻攒连击，避开红色闸门，速度会比旧版更慢地上升。";
+          ? `${endCopy} 最高分 ${best}，剩余体力 ${energy.playsLeft} 次。`
+          : "每天 3 次体力。吃黄钻攒连击，避开红色闸门，难度会逐步上升。";
       }
 
       function reset() {
@@ -740,7 +749,7 @@
         player.lane = 1;
         player.targetLane = 1;
         player.lanePos = 1;
-        player.speed = 1.55;
+        player.speed = 1.7;
         updateHud();
       }
 
@@ -768,9 +777,12 @@
 
       function endGame() {
         running = false;
-        best = Math.max(best, score);
+        const finalScore = Math.floor(score);
+        const isNewBest = finalScore > best;
+        endCopy = getEndMessage(finalScore, isNewBest);
+        best = Math.max(best, finalScore);
         localStorage.setItem(BEST_KEY, String(best));
-        recordScore(score);
+        recordScore(finalScore);
         updateHud();
         menu = "gameover";
         renderMenu();
@@ -799,11 +811,11 @@
       }
 
       function spawnItem() {
-        const difficulty = Math.min(1, score / 1300);
-        const hazardChance = .24 + difficulty * .18;
+        const difficulty = Math.min(1, score / 1050);
+        const hazardChance = .3 + difficulty * .2;
         const type = Math.random() < hazardChance ? "hazard" : "gem";
         const lane = Math.random() < .5 ? 0 : 1;
-        const ahead = 1.38 + Math.random() * (type === "hazard" ? 2.55 : 3.15);
+        const ahead = 1.24 + Math.random() * (type === "hazard" ? 2.32 : 2.95);
         const angle = normAngle(player.angle + ahead);
 
         const tooClose = items.some((it) =>
@@ -846,14 +858,14 @@
       }
 
       function update(dt) {
-        const speedBoost = Math.min(1.55, score / 1100);
-        player.speed = 1.55 + speedBoost;
+        const speedBoost = Math.min(1.85, score / 950);
+        player.speed = 1.7 + speedBoost;
         player.angle = normAngle(player.angle + player.speed * dt);
         player.lanePos += (player.targetLane - player.lanePos) * Math.min(1, dt * 14);
         player.lane = Math.round(player.lanePos);
 
         spawnTimer -= dt;
-        const spawnRate = Math.max(.46, .92 - Math.min(.28, score / 3300));
+        const spawnRate = Math.max(.38, .82 - Math.min(.32, score / 3000));
         if (spawnTimer <= 0) {
           spawnItem();
           spawnTimer = spawnRate;
@@ -864,7 +876,7 @@
         for (const item of items) {
           item.life += dt;
           const diff = angularDistance(player.angle, item.angle);
-          if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? .15 : .1)) {
+          if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? .15 : .11)) {
             if (item.type === "gem") {
               collect(item);
             } else {
