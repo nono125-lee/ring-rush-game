@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23080a0a'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%2300f0c8' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='12' fill='none' stroke='%23ffcf4a' stroke-width='5'/%3E%3C/svg%3E">
   <title>环线冲刺</title>
   <style>
     :root {
@@ -15,6 +16,7 @@
       --red: #ff3d3d;
       --green: #58ff7b;
       --charcoal: #080a0a;
+      --line: rgba(248, 241, 220, .16);
     }
 
     * {
@@ -114,15 +116,15 @@
 
     .meter {
       justify-self: center;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(74px, 110px));
-      border: 1px solid rgba(248, 241, 220, .16);
+      display: flex;
+      border: 1px solid var(--line);
       background: var(--panel);
       box-shadow: 0 18px 60px rgba(0, 0, 0, .38);
       backdrop-filter: blur(12px);
     }
 
     .stat {
+      min-width: 78px;
       padding: 10px 12px;
       text-align: center;
       border-right: 1px solid rgba(248, 241, 220, .12);
@@ -161,6 +163,25 @@
       text-align: right;
     }
 
+    .quick-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+      pointer-events: auto;
+    }
+
+    .icon-btn {
+      width: 42px;
+      min-height: 42px;
+      padding: 0;
+      border: 1px solid rgba(248, 241, 220, .18);
+      background: rgba(8, 10, 10, .64);
+      color: var(--ink);
+      font-size: 18px;
+      box-shadow: none;
+    }
+
     .overlay {
       position: fixed;
       z-index: 5;
@@ -190,12 +211,118 @@
       text-transform: uppercase;
     }
 
-    .modal p {
+    .copy {
       margin: 18px 0 0;
       color: var(--muted);
       font-family: "Menlo", "Consolas", monospace;
       font-size: 13px;
       line-height: 1.55;
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(34px, 9vw, 60px);
+      line-height: .9;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .menu-grid button,
+    .start-row button {
+      width: 100%;
+    }
+
+    .ghost-btn {
+      border: 1px solid rgba(248, 241, 220, .2);
+      background: rgba(248, 241, 220, .08);
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 9px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 13px;
+    }
+
+    .rank-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(248, 241, 220, .12);
+      padding-bottom: 8px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      border: 1px solid rgba(248, 241, 220, .14);
+      padding: 12px;
+      color: var(--ink);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 13px;
+    }
+
+    .switch {
+      position: relative;
+      width: 54px;
+      height: 30px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(248, 241, 220, .18);
+      background: rgba(248, 241, 220, .08);
+    }
+
+    .switch::after {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      content: "";
+      background: var(--muted);
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .switch.on::after {
+      transform: translateX(24px);
+      background: var(--cyan);
+    }
+
+    .notice {
+      position: fixed;
+      z-index: 8;
+      left: 50%;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      min-width: min(320px, calc(100vw - 40px));
+      transform: translateX(-50%) translateY(12px);
+      border: 1px solid rgba(255, 207, 74, .34);
+      padding: 12px 14px;
+      background: rgba(8, 10, 10, .86);
+      color: var(--gold);
+      font-family: "Menlo", "Consolas", monospace;
+      font-size: 12px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .notice.on {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
 
     .start-row {
@@ -257,7 +384,12 @@
 
       .meter {
         justify-self: stretch;
-        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+      }
+
+      .stat {
+        min-width: 0;
+        flex: 1;
       }
 
       .side {
@@ -272,6 +404,10 @@
 
       .modal {
         margin-top: 100px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -297,8 +433,18 @@
         <span class="label">best</span>
         <span class="value" id="best">0</span>
       </div>
+      <div class="stat">
+        <span class="label">energy</span>
+        <span class="value" id="energy">3/3</span>
+      </div>
     </div>
-    <div class="side">空格 / 点击 / 触摸：内外环切换<br>连续吃黄钻加倍率，速度会越来越狠</div>
+    <div class="side">
+      空格 / 点击 / 触摸：内外环切换<br>连续吃黄钻加倍率，难度会缓慢上升
+      <div class="quick-actions">
+        <button class="icon-btn" id="rankQuick" aria-label="排行榜" title="排行榜">≡</button>
+        <button class="icon-btn" id="settingsQuick" aria-label="设置" title="设置">⚙</button>
+      </div>
+    </div>
   </div>
 
   <div class="flash" id="flash"></div>
@@ -306,13 +452,20 @@
   <div class="overlay" id="overlay">
     <div class="modal">
       <h1 id="title">环线<br>冲刺</h1>
-      <p id="copy">在两条霓虹轨道之间切换，吃掉黄钻，避开红色闸门。每次连击都会把分数和心跳一起抬高。</p>
+      <div class="copy" id="copy">在两条霓虹轨道之间切换，吃掉黄钻，避开红色闸门。每次连击都会把分数和心跳一起抬高。</div>
       <div class="start-row">
         <button id="start">开始</button>
         <span class="hint-pill">Space / Tap</span>
       </div>
+      <div class="menu-grid">
+        <button class="ghost-btn" id="adEnergy">看广告+1</button>
+        <button class="ghost-btn" id="ranking">排行榜</button>
+        <button class="ghost-btn" id="settings">设置</button>
+        <button class="ghost-btn" id="share">复制链接</button>
+      </div>
     </div>
   </div>
+  <div class="notice" id="notice"></div>
 
   <script>
     (() => {
@@ -321,14 +474,26 @@
       const scoreEl = document.getElementById("score");
       const comboEl = document.getElementById("combo");
       const bestEl = document.getElementById("best");
+      const energyEl = document.getElementById("energy");
       const overlay = document.getElementById("overlay");
       const titleEl = document.getElementById("title");
       const copyEl = document.getElementById("copy");
       const startBtn = document.getElementById("start");
       const flash = document.getElementById("flash");
+      const adEnergyBtn = document.getElementById("adEnergy");
+      const rankingBtn = document.getElementById("ranking");
+      const settingsBtn = document.getElementById("settings");
+      const shareBtn = document.getElementById("share");
+      const rankQuickBtn = document.getElementById("rankQuick");
+      const settingsQuickBtn = document.getElementById("settingsQuick");
+      const noticeEl = document.getElementById("notice");
 
       const TAU = Math.PI * 2;
       const BEST_KEY = "ring-rush-best";
+      const ENERGY_KEY = "ring-rush-energy";
+      const RANKING_KEY = "ring-rush-ranking";
+      const SETTINGS_KEY = "ring-rush-settings";
+      const DAILY_ENERGY = 3;
       let audio;
       let w = 0;
       let h = 0;
@@ -345,6 +510,11 @@
       let combo = 0;
       let best = Number(localStorage.getItem(BEST_KEY) || 0);
       let pulse = 0;
+      let menu = "home";
+      let noticeTimer = 0;
+      let energy = loadEnergy();
+      let ranking = loadRanking();
+      let settings = loadSettings();
 
       const player = {
         angle: -Math.PI / 2,
@@ -399,6 +569,7 @@
       }
 
       function beep(freq, duration, type = "sine", gain = .055) {
+        if (!settings.sound) return;
         try {
           if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
           const osc = audio.createOscillator();
@@ -417,6 +588,146 @@
         }
       }
 
+      function todayKey() {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function loadEnergy() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(ENERGY_KEY) || "null");
+          if (saved && saved.date === todayKey()) {
+            return { date: saved.date, playsLeft: Number(saved.playsLeft || 0) };
+          }
+        } catch (_) {}
+        const fresh = { date: todayKey(), playsLeft: DAILY_ENERGY };
+        localStorage.setItem(ENERGY_KEY, JSON.stringify(fresh));
+        return fresh;
+      }
+
+      function saveEnergy() {
+        localStorage.setItem(ENERGY_KEY, JSON.stringify(energy));
+      }
+
+      function consumeEnergy() {
+        energy = loadEnergy();
+        if (energy.playsLeft <= 0) return false;
+        energy.playsLeft -= 1;
+        saveEnergy();
+        updateHud();
+        return true;
+      }
+
+      function grantEnergy(amount = 1) {
+        energy = loadEnergy();
+        energy.playsLeft += amount;
+        saveEnergy();
+        updateHud();
+        showNotice(`体力 +${amount}`);
+      }
+
+      function loadRanking() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(RANKING_KEY) || "[]");
+          return Array.isArray(saved) ? saved : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function saveRanking() {
+        localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
+      }
+
+      function recordScore(finalScore) {
+        if (finalScore <= 0) return;
+        ranking.push({ score: Math.floor(finalScore), date: todayKey() });
+        ranking = ranking.sort((a, b) => b.score - a.score).slice(0, 10);
+        saveRanking();
+      }
+
+      function loadSettings() {
+        try {
+          return {
+            sound: true,
+            reducedFx: false,
+            ...(JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")),
+          };
+        } catch (_) {
+          return { sound: true, reducedFx: false };
+        }
+      }
+
+      function saveSettings() {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      }
+
+      function showNotice(text) {
+        noticeEl.textContent = text;
+        noticeEl.classList.add("on");
+        window.clearTimeout(noticeTimer);
+        noticeTimer = window.setTimeout(() => noticeEl.classList.remove("on"), 1800);
+      }
+
+      function openMenu(nextMenu) {
+        menu = nextMenu;
+        running = false;
+        overlay.style.display = "grid";
+        renderMenu();
+      }
+
+      function renderMenu() {
+        adEnergyBtn.style.display = "";
+        rankingBtn.style.display = "";
+        settingsBtn.style.display = "";
+        shareBtn.style.display = "";
+        startBtn.style.display = "";
+        startBtn.textContent = energy.playsLeft > 0 ? "开始" : "没体力";
+
+        if (menu === "ranking") {
+          titleEl.innerHTML = `<span class="panel-title">排行榜</span>`;
+          const rows = ranking.length
+            ? ranking.slice(0, 8).map((item, index) => `<li><span>${index + 1}. ${item.score} 分</span><span>${item.date}</span></li>`).join("")
+            : `<li><span>暂无成绩</span><span>0 分</span></li>`;
+          copyEl.innerHTML = `<ul class="rank-list">${rows}</ul>`;
+          startBtn.textContent = "返回";
+          adEnergyBtn.style.display = "none";
+          rankingBtn.style.display = "none";
+          settingsBtn.style.display = "none";
+          shareBtn.style.display = "none";
+          return;
+        }
+
+        if (menu === "settings") {
+          titleEl.innerHTML = `<span class="panel-title">设置</span>`;
+          copyEl.innerHTML = `
+            <div class="setting-row">声音反馈 <span class="switch ${settings.sound ? "on" : ""}" data-setting="sound"></span></div>
+            <div class="setting-row">减少闪光 <span class="switch ${settings.reducedFx ? "on" : ""}" data-setting="reducedFx"></span></div>
+          `;
+          startBtn.textContent = "返回";
+          adEnergyBtn.style.display = "none";
+          rankingBtn.style.display = "none";
+          settingsBtn.style.display = "none";
+          shareBtn.style.display = "none";
+          return;
+        }
+
+        if (energy.playsLeft <= 0) {
+          titleEl.innerHTML = "体力<br>用完";
+          copyEl.textContent = "今天 3 次已用完。看一次广告可增加 1 次，明天会自动恢复到 3 次。";
+          startBtn.textContent = "没体力";
+          return;
+        }
+
+        titleEl.innerHTML = menu === "gameover" ? `${Math.floor(score)}<br>分` : "环线<br>冲刺";
+        copyEl.textContent = menu === "gameover"
+          ? `最高分 ${best}。新版节奏更松，红色闸门少一些，再冲一把更容易破纪录。`
+          : "每天 3 次体力。吃黄钻攒连击，避开红色闸门，速度会比旧版更慢地上升。";
+      }
+
       function reset() {
         score = 0;
         combo = 0;
@@ -429,14 +740,25 @@
         player.lane = 1;
         player.targetLane = 1;
         player.lanePos = 1;
-        player.speed = 1.9;
+        player.speed = 1.55;
         updateHud();
       }
 
       function startGame() {
         if (running) return;
+        if (menu === "ranking" || menu === "settings") {
+          openMenu("home");
+          return;
+        }
+        if (!consumeEnergy()) {
+          menu = "home";
+          renderMenu();
+          showNotice("今日体力已用完");
+          return;
+        }
         reset();
         running = true;
+        menu = "playing";
         overlay.style.display = "none";
         last = performance.now();
         beep(220, .09, "triangle", .04);
@@ -448,10 +770,10 @@
         running = false;
         best = Math.max(best, score);
         localStorage.setItem(BEST_KEY, String(best));
+        recordScore(score);
         updateHud();
-        titleEl.innerHTML = `${score}<br>分`;
-        copyEl.textContent = `最高分 ${best}。刚才的节奏已经够快了，再来一局通常能多撑十秒。`;
-        startBtn.textContent = "再来";
+        menu = "gameover";
+        renderMenu();
         overlay.style.display = "grid";
         shake = 28;
         beep(120, .22, "sawtooth", .06);
@@ -461,6 +783,8 @@
         scoreEl.textContent = Math.floor(score);
         comboEl.textContent = `x${Math.max(1, Math.min(9, Math.floor(combo / 5) + 1))}`;
         bestEl.textContent = Math.floor(best);
+        energy = loadEnergy();
+        energyEl.textContent = `${energy.playsLeft}/${DAILY_ENERGY}`;
       }
 
       function switchLane() {
@@ -475,11 +799,11 @@
       }
 
       function spawnItem() {
-        const difficulty = Math.min(1, score / 900);
-        const hazardChance = .36 + difficulty * .22;
+        const difficulty = Math.min(1, score / 1300);
+        const hazardChance = .24 + difficulty * .18;
         const type = Math.random() < hazardChance ? "hazard" : "gem";
         const lane = Math.random() < .5 ? 0 : 1;
-        const ahead = 1.15 + Math.random() * (type === "hazard" ? 2.2 : 2.9);
+        const ahead = 1.38 + Math.random() * (type === "hazard" ? 2.55 : 3.15);
         const angle = normAngle(player.angle + ahead);
 
         const tooClose = items.some((it) =>
@@ -522,14 +846,14 @@
       }
 
       function update(dt) {
-        const speedBoost = Math.min(2.4, score / 650);
-        player.speed = 1.9 + speedBoost + Math.min(1.2, performance.now() / 100000);
+        const speedBoost = Math.min(1.55, score / 1100);
+        player.speed = 1.55 + speedBoost;
         player.angle = normAngle(player.angle + player.speed * dt);
         player.lanePos += (player.targetLane - player.lanePos) * Math.min(1, dt * 14);
         player.lane = Math.round(player.lanePos);
 
         spawnTimer -= dt;
-        const spawnRate = Math.max(.32, .72 - Math.min(.34, score / 2800));
+        const spawnRate = Math.max(.46, .92 - Math.min(.28, score / 3300));
         if (spawnTimer <= 0) {
           spawnItem();
           spawnTimer = spawnRate;
@@ -540,7 +864,7 @@
         for (const item of items) {
           item.life += dt;
           const diff = angularDistance(player.angle, item.angle);
-          if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? .15 : .12)) {
+          if (!item.hit && item.lane === playerLane && diff < (item.type === "gem" ? .15 : .1)) {
             if (item.type === "gem") {
               collect(item);
             } else {
@@ -614,10 +938,10 @@
 
       function drawHazard(item) {
         const radius = laneRadii[item.lane];
-        const len = .18 + Math.min(.09, score / 9000);
+        const len = .14 + Math.min(.07, score / 10000);
         ctx.save();
         ctx.strokeStyle = "#ff3d3d";
-        ctx.lineWidth = 18 * scale;
+        ctx.lineWidth = 15 * scale;
         ctx.lineCap = "round";
         ctx.shadowColor = "#ff3d3d";
         ctx.shadowBlur = 24;
@@ -641,7 +965,7 @@
         ctx.translate(p.x, p.y);
         ctx.rotate(tangent);
         ctx.shadowColor = "#00f0c8";
-        ctx.shadowBlur = 34 * glow;
+        ctx.shadowBlur = settings.reducedFx ? 10 * glow : 34 * glow;
         ctx.fillStyle = "#00f0c8";
         ctx.beginPath();
         ctx.roundRect(-16 * scale * glow, -7 * scale * glow, 32 * scale * glow, 14 * scale * glow, 6 * scale);
@@ -669,21 +993,25 @@
           ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
         }
 
-        for (const s of stars) {
+        const starCount = settings.reducedFx ? Math.floor(stars.length * .45) : stars.length;
+        for (let i = 0; i < starCount; i += 1) {
+          const s = stars[i];
           ctx.fillStyle = `rgba(248,241,220,${s.a})`;
           ctx.beginPath();
           ctx.arc(s.x, s.y, s.r, 0, TAU);
           ctx.fill();
         }
 
-        const coreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, laneRadii[1] * 1.6);
-        coreGradient.addColorStop(0, "rgba(0,240,200,.14)");
-        coreGradient.addColorStop(.45, "rgba(255,207,74,.06)");
-        coreGradient.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = coreGradient;
-        ctx.beginPath();
-        ctx.arc(cx, cy, laneRadii[1] * 1.6, 0, TAU);
-        ctx.fill();
+        if (!settings.reducedFx) {
+          const coreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, laneRadii[1] * 1.6);
+          coreGradient.addColorStop(0, "rgba(0,240,200,.14)");
+          coreGradient.addColorStop(.45, "rgba(255,207,74,.06)");
+          coreGradient.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.arc(cx, cy, laneRadii[1] * 1.6, 0, TAU);
+          ctx.fill();
+        }
 
         drawRing(laneRadii[0], "rgba(0,240,200,.72)", 3 * scale, .85);
         drawRing(laneRadii[1], "rgba(255,207,74,.62)", 3 * scale, .78);
@@ -734,6 +1062,7 @@
 
       window.addEventListener("resize", resize);
       window.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button") || event.target.closest(".switch")) return;
         event.preventDefault();
         switchLane();
       }, { passive: false });
@@ -746,6 +1075,50 @@
       startBtn.addEventListener("click", (event) => {
         event.stopPropagation();
         startGame();
+      });
+      adEnergyBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        energy = loadEnergy();
+        if (energy.playsLeft > 0) {
+          showNotice("还有体力，先玩完再看广告");
+          return;
+        }
+        window.setTimeout(() => grantEnergy(1), 900);
+        showNotice("广告播放完成后获得 1 次体力");
+      });
+      rankingBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("ranking");
+      });
+      settingsBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("settings");
+      });
+      rankQuickBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("ranking");
+      });
+      settingsQuickBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openMenu("settings");
+      });
+      shareBtn.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          showNotice("链接已复制");
+        } catch (_) {
+          showNotice("复制失败，请手动分享地址栏链接");
+        }
+      });
+      copyEl.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-setting]");
+        if (!target) return;
+        const key = target.dataset.setting;
+        settings[key] = !settings[key];
+        saveSettings();
+        renderMenu();
+        event.stopPropagation();
       });
 
       if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -762,7 +1135,8 @@
       }
 
       resize();
-      bestEl.textContent = best;
+      updateHud();
+      renderMenu();
       draw();
     })();
   </script>

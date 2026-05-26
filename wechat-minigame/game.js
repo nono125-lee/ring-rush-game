@@ -214,6 +214,11 @@ function initRewardedAd() {
 }
 
 function requestAdEnergy() {
+  loadEnergy();
+  if (energy.playsLeft > 0) {
+    showNotice("还有体力，先玩完再看广告");
+    return;
+  }
   if (!REWARDED_AD_UNIT_ID || !rewardedVideoAd) {
     showNotice("请先配置激励视频广告位 ID");
     return;
